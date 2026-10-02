@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "harpercollins-india",
+    "name": "HarperCollins India",
+    "description": "Literary fiction, fantasy and memoir from Indian and international voices."
+  },
+  {
+    "slug": "penguin-india",
+    "name": "Penguin India",
+    "description": "One of India’s largest English-language publishers, with fiction, non-fiction and popular science."
+  },
+  {
+    "slug": "rajkamal-prakashan",
+    "name": "Rajkamal Prakashan",
+    "description": "Classic and contemporary Hindi literature, poetry and drama."
+  },
+  {
+    "slug": "rupa-publications",
+    "name": "Rupa Publications",
+    "description": "Practical guides, family sagas and language learning for everyday readers."
+  },
+  {
+    "slug": "scholastic-india",
+    "name": "Scholastic India",
+    "description": "Books for children and young adults, from picture books to graphic novels."
+  },
+  {
+    "slug": "westland-books",
+    "name": "Westland Books",
+    "description": "Thrillers, mysteries and travel writing with a strong local flavour."
+  }
+]

@@ -1,0 +1,94 @@
+[
+  {
+    "handle": "fiction",
+    "name": "Fiction"
+  },
+  {
+    "handle": "non-fiction",
+    "name": "Non-fiction"
+  },
+  {
+    "handle": "romance",
+    "name": "Romance"
+  },
+  {
+    "handle": "mystery",
+    "name": "Mystery"
+  },
+  {
+    "handle": "thriller",
+    "name": "Thriller"
+  },
+  {
+    "handle": "horror",
+    "name": "Horror"
+  },
+  {
+    "handle": "science-fiction",
+    "name": "Science Fiction"
+  },
+  {
+    "handle": "fantasy",
+    "name": "Fantasy"
+  },
+  {
+    "handle": "historical",
+    "name": "Historical"
+  },
+  {
+    "handle": "biography",
+    "name": "Biography"
+  },
+  {
+    "handle": "self-help",
+    "name": "Self Help"
+  },
+  {
+    "handle": "memoir",
+    "name": "Memoir"
+  },
+  {
+    "handle": "travel",
+    "name": "Travel"
+  },
+  {
+    "handle": "cooking",
+    "name": "Cooking"
+  },
+  {
+    "handle": "childrens",
+    "name": "Children"
+  },
+  {
+    "handle": "young-adult",
+    "name": "Young Adult"
+  },
+  {
+    "handle": "comics-graphic-novels",
+    "name": "Comics & Graphic Novels"
+  },
+  {
+    "handle": "poetry",
+    "name": "Poetry"
+  },
+  {
+    "handle": "drama",
+    "name": "Drama"
+  },
+  {
+    "handle": "science",
+    "name": "Science"
+  },
+  {
+    "handle": "philosophy",
+    "name": "Philosophy"
+  },
+  {
+    "handle": "religion",
+    "name": "Religion"
+  },
+  {
+    "handle": "language-learning",
+    "name": "Language Learning"
+  }
+]

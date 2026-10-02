@@ -1,0 +1,37 @@
+{
+  "customer": {
+    "email": "reader@bookworm.test",
+    "password": "bookworm123",
+    "firstName": "Asha",
+    "lastName": "Verma",
+    "giftPoints": 120
+  },
+  "address": {
+    "firstName": "Asha",
+    "lastName": "Verma",
+    "address": "12 MG Road, Indiranagar",
+    "email": "reader@bookworm.test",
+    "city": "Bengaluru",
+    "pin": "560038",
+    "phoneCountryCode": "+91",
+    "phone": "9876543210",
+    "state": "Karnataka",
+    "country": "India"
+  },
+  "orders": [
+    {
+      "displayId": 1002,
+      "hoursAgo": 2,
+      "books": ["the-art-of-focus", "the-midnight-hour"],
+      "paymentMethod": "upi",
+      "note": "Inside the 48 h cancel window"
+    },
+    {
+      "displayId": 1001,
+      "hoursAgo": 240,
+      "books": ["letters-from-monsoon"],
+      "paymentMethod": "upi",
+      "note": "Too old to cancel; can only be bought again"
+    }
+  ]
+}
