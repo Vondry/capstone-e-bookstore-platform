@@ -1,0 +1,434 @@
+openapi: 3.1.0
+info:
+  title: Book Worm — custom Store API
+  version: 0.1.0
+  description: |
+    Custom routes added to the Medusa v2 backend (`backend/src/api/store/**`) for Book Worm.
+
+    The standard Medusa Store API (products, categories, carts, promotions, payment, orders,
+    customers, auth) is **not** redefined here; see Medusa's published reference:
+    https://docs.medusajs.com/api/store
+
+    Every request needs the publishable API key header (`x-publishable-api-key`).
+    Customer-only routes need the customer's bearer token (from `POST /auth/customer/emailpass`).
+
+    The MSW mocks in `src/mocks/handlers` implement this same contract for local development and tests.
+    Data model: `docs/data-model.md`. Plan: `docs/plans/14-backend-medusa.md`.
+servers:
+  - url: http://localhost:9100
+    description: Local Medusa (port 9000 is taken by PHP-FPM on the dev machine; configurable)
+
+security:
+  - publishableKey: []
+
+tags:
+  - name: Brands
+    description: Writers and publishers (deck journey 6 — browse the brands)
+  - name: Catalog
+    description: Catalogue sections not covered by core product listing
+  - name: Loyalty
+    description: Gift points (deck journey 10 — redeem gift points)
+  - name: Shipping
+    description: Delivery on the cart (deck journey 9; architecture diagram — Shipping)
+  - name: Orders
+    description: Cancel within 48 h (deck journey 12)
+  - name: Reviews
+    description: Rate & endorse (architecture diagram — Member)
+
+paths:
+  /store/writers:
+    get:
+      tags: [Brands]
+      operationId: listWriters
+      summary: List writers with their book counts
+      responses:
+        '200':
+          description: Writers, sorted by name
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [writers]
+                properties:
+                  writers:
+                    type: array
+                    items: { $ref: '#/components/schemas/WriterSummary' }
+
+  /store/writers/{slug}:
+    get:
+      tags: [Brands]
+      operationId: getWriter
+      summary: Get one writer's profile
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The writer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [writer]
+                properties:
+                  writer: { $ref: '#/components/schemas/Writer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store/publishers:
+    get:
+      tags: [Brands]
+      operationId: listPublishers
+      summary: List publishers with their book counts
+      responses:
+        '200':
+          description: Publishers, sorted by name
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [publishers]
+                properties:
+                  publishers:
+                    type: array
+                    items: { $ref: '#/components/schemas/Publisher' }
+
+  /store/publishers/{slug}:
+    get:
+      tags: [Brands]
+      operationId: getPublisher
+      summary: Get one publisher
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: The publisher
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [publisher]
+                properties:
+                  publisher: { $ref: '#/components/schemas/PublisherDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store/catalog/bestsellers:
+    get:
+      tags: [Catalog]
+      operationId: listBestsellers
+      summary: 'Bestsellers this Month'
+      description: |
+        Product ids ranked by quantity sold in the last 30 days (orders), falling back to
+        `product.metadata.sold_count`. The client then loads the products with the core
+        `GET /store/products?id[]=…` so prices are calculated for its region.
+        (Not under `/store/products/…`, which would clash with the core `GET /store/products/{id}`.)
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 20, default: 3 }
+      responses:
+        '200':
+          description: Ranked product ids
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [product_ids]
+                properties:
+                  product_ids:
+                    type: array
+                    items: { type: string }
+
+  /store/customers/me/loyalty-points:
+    get:
+      tags: [Loyalty]
+      operationId: getLoyaltyPoints
+      summary: The logged-in customer's gift points balance
+      security:
+        - publishableKey: []
+          customerToken: []
+      responses:
+        '200':
+          description: Balance
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [points]
+                properties:
+                  points: { type: integer, minimum: 0 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /store/carts/{id}/loyalty-points:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    post:
+      tags: [Loyalty]
+      operationId: applyLoyaltyPoints
+      summary: Redeem gift points on the cart
+      description: |
+        Applies min(balance, 50 % of the items subtotal) as a single-use promotion restricted to
+        this customer (1 point = ₹1). The promotion id is stored in `cart.metadata.loyalty_promo_id`.
+        Points are deducted when the order is placed, not now.
+      security:
+        - publishableKey: []
+          customerToken: []
+      responses:
+        '200': { $ref: '#/components/responses/Cart' }
+        '400':
+          description: Points already applied, or no points to redeem
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [Loyalty]
+      operationId: removeLoyaltyPoints
+      summary: Stop redeeming gift points on the cart
+      security:
+        - publishableKey: []
+          customerToken: []
+      responses:
+        '200': { $ref: '#/components/responses/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /store/carts/{id}/shipping-methods:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    delete:
+      tags: [Shipping]
+      operationId: removeUnneededShippingMethods
+      summary: Remove the delivery of a cart that only holds eBooks
+      description: |
+        Medusa keeps a shipping method on the cart after the last physical book is removed, so an
+        eBook-only cart would still be charged delivery. This removes every shipping method once no
+        item requires shipping, and recalculates the totals. Idempotent. Adding a shipping method
+        stays Medusa's own `POST` on this path. Guests may call it (carts are identified by id).
+      security:
+        - publishableKey: []
+      responses:
+        '200': { $ref: '#/components/responses/Cart' }
+        '400':
+          description: The cart still has books that need delivery
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store/orders/{id}/cancel-request:
+    post:
+      tags: [Orders]
+      operationId: requestOrderCancellation
+      summary: Ask the store to cancel an order (within 48 h)
+      description: |
+        Allowed only for the order's own customer and only while less than 48 hours have passed
+        since the order was placed. Creates a cancellation request; the store confirms it in
+        Medusa Admin. The order then shows "Cancellation requested" (never "Cancelled" until confirmed).
+      security:
+        - publishableKey: []
+          customerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Request recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cancellation_request]
+                properties:
+                  cancellation_request: { $ref: '#/components/schemas/CancellationRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Outside the 48 h window, or a request already exists
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /store/products/{id}/reviews:
+    get:
+      tags: [Reviews]
+      operationId: listProductReviews
+      summary: Approved reviews of a product, newest first
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: Reviews with the average rating
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reviews, count, average_rating]
+                properties:
+                  reviews:
+                    type: array
+                    items: { $ref: '#/components/schemas/Review' }
+                  count: { type: integer }
+                  average_rating: { type: [number, 'null'], minimum: 1, maximum: 5 }
+
+  /store/reviews:
+    post:
+      tags: [Reviews]
+      operationId: createReview
+      summary: Leave a review
+      security:
+        - publishableKey: []
+          customerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, content, rating]
+              properties:
+                product_id: { type: string }
+                content: { type: string, minLength: 1, maxLength: 100 }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+      responses:
+        '200':
+          description: The created review
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [review]
+                properties:
+                  review: { $ref: '#/components/schemas/Review' }
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  securitySchemes:
+    publishableKey:
+      type: apiKey
+      in: header
+      name: x-publishable-api-key
+    customerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+    CartId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Cart:
+      description: The updated cart (core Medusa `StoreCart`, see https://docs.medusajs.com/api/store#carts)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [cart]
+            properties:
+              cart: { type: object, description: Medusa StoreCart }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid customer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [message]
+      properties:
+        type: { type: string, examples: [not_allowed, invalid_data, not_found] }
+        message: { type: string }
+
+    WriterSummary:
+      type: object
+      required: [slug, name, avatar_url, book_count]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        avatar_url: { type: string, format: uri }
+        book_count: { type: integer, minimum: 0 }
+
+    Writer:
+      type: object
+      required: [slug, name, bio, avatar_url, product_ids]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        bio:
+          type: array
+          description: One entry per paragraph
+          items: { type: string }
+        avatar_url: { type: string, format: uri }
+        product_ids:
+          type: array
+          description: The writer's books; load them with the core `GET /store/products?id[]=…`
+          items: { type: string }
+
+    PublisherDetail:
+      allOf:
+        - $ref: '#/components/schemas/Publisher'
+        - type: object
+          required: [product_ids]
+          properties:
+            product_ids:
+              type: array
+              description: The publisher's books; load them with the core `GET /store/products?id[]=…`
+              items: { type: string }
+
+    Publisher:
+      type: object
+      required: [slug, name, description, book_count]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        book_count: { type: integer, minimum: 0 }
+
+    CancellationRequest:
+      type: object
+      required: [id, order_id, status, created_at]
+      properties:
+        id: { type: string }
+        order_id: { type: string }
+        status: { type: string, enum: [requested, approved, rejected] }
+        created_at: { type: string, format: date-time }
+
+    Review:
+      type: object
+      required: [id, product_id, first_name, last_name, content, rating, created_at]
+      properties:
+        id: { type: string }
+        product_id: { type: string }
+        first_name: { type: string }
+        last_name: { type: string }
+        content: { type: string, maxLength: 100 }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        created_at: { type: string, format: date-time }
