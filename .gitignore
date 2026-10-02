@@ -47,3 +47,7 @@ build
 # IDE and TypeScript incremental build info
 .idea
 *.tsbuildinfo
+
+# Capstone video and its recording script (submitted separately, kept out of history)
+VIDEO_SCRIPT.md
+docs/video/

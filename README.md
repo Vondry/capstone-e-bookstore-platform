@@ -4,6 +4,10 @@ Book Worm is a responsive, modern e-commerce storefront for an online bookstore,
 
 Customers can browse books by category, writer, and publisher, manage a shopping cart, apply promotional coupons and loyalty gift points, checkout with multiple payment methods (Card, UPI, Wallet), track their order history, request order cancellation within a 48-hour window, and write customer book reviews.
 
+**How it was built with agentic tools (IBM Bob, Claude Code):** see [`docs/AGENTIC_WORKFLOW.md`](docs/AGENTIC_WORKFLOW.md):
+terms, the plan → approve → implement → verify loop, the decisions I made, the AI mistakes caught, and the results.
+Per-feature plans are in [`docs/plans/`](docs/plans/), the step log in [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md).
+
 ---
 
 ## 1. Architecture & Tech Stack
