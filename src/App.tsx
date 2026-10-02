@@ -18,6 +18,10 @@ const PaymentPage = lazy(() =>
 const OrderSuccessPage = lazy(() =>
   import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage }))
 );
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -46,6 +50,8 @@ function App() {
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
                 <Route path="/orders/:id/success" element={<OrderSuccessPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
