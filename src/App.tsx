@@ -9,6 +9,9 @@ import { ToastProvider } from './components/ui/Toast';
 const ProductPage = lazy(() =>
   import('./pages/ProductPage').then((m) => ({ default: m.ProductPage }))
 );
+const CheckoutPage = lazy(() =>
+  import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -34,6 +37,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/category/:handle" element={<HomePage />} />
                 <Route path="/books/:handle" element={<ProductPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
