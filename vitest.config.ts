@@ -25,6 +25,13 @@ export default mergeConfig(
           'src/vite-env.d.ts',
           '**/types.ts',
         ],
+        // CI fails below 90 % (docs/plans/15-ci-and-coverage.md)
+        thresholds: {
+          statements: 90,
+          branches: 90,
+          functions: 90,
+          lines: 90,
+        },
       },
     },
   })

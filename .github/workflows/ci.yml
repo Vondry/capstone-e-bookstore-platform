@@ -1,0 +1,181 @@
+# Book Worm CI (docs/plans/15-ci-and-coverage.md)
+#
+#   static ──┬─> e2e-mock   (Playwright, MSW, desktop + mobile + tablet)
+#   unit  ───┘
+#   backend-unit
+#   e2e-live                (Playwright against Medusa + PostgreSQL, seeded from scratch)
+#
+# Every job runs the same npm scripts as a developer does locally (see README → Testing).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Same major as local development; Medusa needs >= 22.15
+  NODE_VERSION: 24
+
+jobs:
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix backend
+      - name: Typecheck (app + E2E specs)
+        run: npm run typecheck
+      - name: Lint (ESLint + SonarJS)
+        run: npm run lint
+      - name: Formatting (Prettier)
+        run: npm run format:check
+      - name: Production build
+        run: npm run build
+      - name: Backend typecheck
+        run: npm run backend:typecheck
+      - name: Backend lint
+        run: npm run backend:lint
+
+  unit:
+    name: Unit tests + coverage (>= 90 %)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Fails when statements, branches, functions or lines drop below 90 % (vitest.config.ts)
+      - run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e '
+            const { total } = require("./coverage/coverage-summary.json");
+            const rows = ["statements", "branches", "functions", "lines"]
+              .map((key) => `| ${key} | ${total[key].pct} % | ${total[key].covered} / ${total[key].total} |`);
+            console.log(["### Unit test coverage", "| Metric | Coverage | Covered |", "|---|---|---|", ...rows].join("\n"));
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  backend-unit:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm run backend:test
+
+  e2e-mock:
+    name: E2E (mock API, 3 viewports)
+    needs: [static, unit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Desktop runs in Chromium; the iPhone 12 and iPad Pro projects run in WebKit
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-mock
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  e2e-live:
+    name: E2E (live Medusa + PostgreSQL)
+    needs: [static, unit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      # Same database as docker-compose.yml
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: medusa
+          POSTGRES_PASSWORD: medusa
+          POSTGRES_DB: bookworm
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U medusa -d bookworm"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix backend
+      - name: Backend .env (throwaway secrets for this run)
+        working-directory: backend/apps/backend
+        run: |
+          cp .env.template .env
+          sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
+          sed -i "s/^COOKIE_SECRET=.*/COOKIE_SECRET=$(openssl rand -hex 32)/" .env
+          sed -i "s/^AUTH_MFA_ENCRYPTION_KEY=.*/AUTH_MFA_ENCRYPTION_KEY=$(openssl rand -hex 32)/" .env
+      - name: Migrate and seed
+        run: npm run backend:migrate
+      - name: Storefront env from the seed (publishable key, region)
+        run: npm run live:env
+      - name: Start Medusa on :9100
+        run: |
+          npm run backend:dev > medusa.log 2>&1 &
+          timeout 180 bash -c 'until curl -sf http://localhost:9100/health > /dev/null; do sleep 2; done'
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:live
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-live
+          path: |
+            playwright-report/
+            test-results/
+            medusa.log
+          retention-days: 14

@@ -1,0 +1,97 @@
+# 15 — CI pipeline, 90 % coverage and a manual pass in mock + live mode
+
+## 1. Goal
+Run every static check and test suite on GitHub Actions, raise unit coverage to ≥ 90 % (enforced), and
+check every customer journey (1–12) by hand against the mock and the live Medusa backend to find
+missing tests. No new screens.
+
+## 2. Wireframe reference
+None: no UI changes. Scenarios come from `.bob/rules/03-screens.md`, the deck journeys 1–12 and plans 04–14.
+
+**Decisions (2026-10-02, approved in chat):**
+- D1: add `@vitest/coverage-v8` (dev dependency, same version as Vitest). `@axe-core/playwright` declined for now.
+- D2: full CI, including live E2E against Medusa + PostgreSQL.
+- D3: coverage excludes the MSW mock backend (`src/mocks/**`): it is a test double, exercised by every test.
+
+## 3. Component tree
+No components change. Two behaviour fixes found by the manual pass (see 10).
+
+## 4. Files
+| Path | Action | Purpose |
+|---|---|---|
+| `.github/workflows/ci.yml` | create | Static checks, unit + coverage, backend unit, E2E mock (3 viewports), E2E live |
+| `vitest.config.ts` | modify | Coverage include/exclude, 90 % thresholds, lcov + summary reporters |
+| `package.json` | modify | `test:coverage`, `format:check`, `live:env`, `db:reset`; `@vitest/coverage-v8` |
+| `scripts/live-env.mjs` | create | Writes `.env.live.local` (publishable key, region) from the seeded database |
+| `.env.live` | modify | Stale key and region removed; they change with every seed |
+| `playwright.config.ts` | modify | The `live` project runs every spec, not only the golden path |
+| `eslint.config.js` | modify | Node globals for `scripts/**/*.mjs` |
+| `.gitignore` | modify | `.idea`, `*.tsbuildinfo` |
+| `src/features/cart/api.ts` | modify | Fix: coupon codes are sent upper case (Medusa codes are case-sensitive) |
+| `src/mocks/handlers/cart.ts` | modify | Mock is case-sensitive like Medusa, so the mock catches the bug too |
+| `src/features/catalog/hooks/useFilters.ts` | modify | Fix: two quick filter changes no longer lose the first one |
+| `src/lib/formatters.ts` | modify | Remove unused `formatDeliveryEstimate` (duplicate of `formatDeliveryDate`) |
+| `src/**/*.test.ts(x)` | create/modify | Unit tests listed in 9 |
+| `tests/e2e/*.spec.ts` | create/modify | E2E tests listed in 9; data-independent assertions for live runs |
+| `backend/apps/backend/src/migration-scripts/bookworm-seed.ts` | modify | Seed log points to `npm run live:env` |
+| `backend/apps/backend/src/workflows/remove-unneeded-shipping.ts` | create | Workflow + pure `unneededShippingMethodIds` |
+| `backend/apps/backend/src/api/store/carts/[id]/shipping-methods/route.ts` (+ unit test) | create | `DELETE`: remove delivery from eBook-only carts |
+| `src/mocks/medusa/carts.ts`, `src/mocks/handlers/cart.ts` | modify | Delivery charged per shipping method (like Medusa); mock `DELETE` route |
+| `docs/api/openapi.yaml` | modify | Documents the new route |
+| `README.md` | modify | Live env flow, new scripts, CI section |
+
+## 5. Data
+No API changes. `live:env` reads `api_key` (publishable, "Book Worm storefront") and `region` ("India")
+with `pg` from the backend's dependencies.
+
+## 6. States
+Unchanged.
+
+## 7. Responsive behaviour
+Unchanged; the mobile drawer category flow gets an E2E test (mobile + tablet).
+
+## 8. Accessibility
+Unchanged. Automated axe checks are a TODO (needs `@axe-core/playwright`).
+
+## 9. Tests
+**Unit (Vitest), 377 → 450 tests.** Coverage (excluding mocks, bootstrap, types):
+statements 87.8 → 95.9 %, branches 82.7 → 91.8 %, functions 87.1 → 95.3 %, lines 89.7 → 97.1 %.
+- `App.test.tsx`: every route lazy-loads and renders without the error boundary; 404 page.
+- `PageShell`, `Drawer`, `RouteErrorBoundary`, `ThemeToggle` (were 0 %).
+- `useFilters` (URL parse/write, quick successive changes), `formatters`, `useReviews`.
+- `cart/api` (coupon case, minimum, unknown, remove; 404/5xx cart; storage unavailable; transfer 5xx),
+  `auth/api` (expired token, 5xx, MFA step, login without customer).
+- `HomePage` (results grid, category title, per-section error + retry), `FilterBar` (all selects, count, clear).
+- Mapper edge cases for live data (missing number, e-mail, address, deleted product, unknown country).
+
+**E2E (Playwright).** Mock: 58 → 69 tests. Live: 2 → 58 tests (every spec on desktop).
+- Catalogue: price range + price sort, language link from a book, breadcrumb to the top category, unknown URL.
+- Checkout: ₹40 delivery under ₹499, eBook-only cart without delivery, eBook after removing the last paperback.
+- Responsive: picking a category from the Menu drawer below lg.
+- Session: theme choice, login and cart survive a reload.
+
+## 10. Risks & open questions
+Found in the manual pass (mock vs live):
+- **Fixed** — `.env.live` held a publishable key from an earlier seed: live mode showed "A valid publishable
+  key is required" on every screen, and 42 of 48 specs failed against live. Now generated by `live:env`.
+- **Fixed** — Coupons typed in lower case ("bookworm100") failed only in live mode with a misleading
+  "needs a minimum order of ₹300": Medusa codes are case-sensitive, the mock wasn't.
+- **Fixed** — Choosing a price range and then a sort quickly dropped the price range (stale filters).
+- **Fixed (backend route)** — A cart that held a paperback kept its ₹40 shipping method after it
+  became eBook-only (Medusa doesn't remove it, and the store API can't). New custom route
+  `DELETE /store/carts/{id}/shipping-methods` (workflow `remove-unneeded-shipping`: cart lock,
+  `removeShippingMethodFromCartStep`, `refreshCartItemsWorkflow`; refuses carts that still need
+  delivery). The storefront's `syncShippingMethod` calls it after adding or removing a line, saving
+  the address and before completing. The MSW mock now charges for a shipping method like Medusa does
+  and serves the same route, so the regression tests fail in mock mode too without the fix.
+- **Open** — No backend HTTP integration tests (`backend/apps/backend/integration-tests/http/`), although
+  plan 14 lists them; custom routes are covered only through live E2E.
+- Live E2E needs a freshly seeded database (`npm run db:reset`); CI always starts from one.
+
+## 11. Task checklist
+- [x] Coverage provider, thresholds, scripts
+- [x] Manual pass mock + live; live env script; fixes with regression tests
+- [x] Unit tests to ≥ 90 % on all four metrics
+- [x] New E2E scenarios; live project runs every spec
+- [x] `.github/workflows/ci.yml`; rehearsed locally (static, unit, backend unit, E2E mock with `CI=true`, E2E live on a fresh database)
+- [ ] First green run on GitHub (needs the repository's first push)
