@@ -25,6 +25,21 @@ const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default:
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
 );
+const WishlistPage = lazy(() =>
+  import('./pages/WishlistPage').then((m) => ({ default: m.WishlistPage }))
+);
+const WritersPage = lazy(() =>
+  import('./pages/WritersPage').then((m) => ({ default: m.WritersPage }))
+);
+const WriterPage = lazy(() =>
+  import('./pages/WriterPage').then((m) => ({ default: m.WriterPage }))
+);
+const PublishersPage = lazy(() =>
+  import('./pages/PublishersPage').then((m) => ({ default: m.PublishersPage }))
+);
+const PublisherPage = lazy(() =>
+  import('./pages/PublisherPage').then((m) => ({ default: m.PublisherPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -56,6 +71,11 @@ function App() {
                 <Route path="/orders/:id/success" element={<OrderSuccessPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/writers" element={<WritersPage />} />
+                <Route path="/writers/:slug" element={<WriterPage />} />
+                <Route path="/publishers" element={<PublishersPage />} />
+                <Route path="/publishers/:slug" element={<PublisherPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
