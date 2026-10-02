@@ -1,0 +1,40 @@
+/* Design tokens based on IBM Carbon Design System g100 (dark theme) */
+:root {
+  /* Colors - Dark theme (default) */
+  --bg: #161616;
+  --layer-1: #262626;
+  --layer-2: #393939;
+  --border: #525252;
+  --text-primary: #f4f4f4;
+  --text-secondary: #c6c6c6;
+  --text-placeholder: #6f6f6f;
+  --link: #78a9ff;
+  --interactive: #0f62fe;
+  --interactive-hover: #0353e9;
+  --button-secondary: #6f6f6f;
+  --button-secondary-hover: #606060;
+  --support-success: #42be65;
+  --support-error: #fa4d56;
+  --rating: #f1c21b;
+  --focus: #ffffff;
+}
+
+/* Light theme */
+[data-theme='light'] {
+  --bg: #ffffff;
+  --layer-1: #f4f4f4;
+  --layer-2: #e0e0e0;
+  --border: #c6c6c6;
+  --text-primary: #161616;
+  --text-secondary: #525252;
+  --text-placeholder: #a8a8a8;
+  --link: #0f62fe;
+  --interactive: #0f62fe;
+  --interactive-hover: #0353e9;
+  --button-secondary: #393939;
+  --button-secondary-hover: #474747;
+  --support-success: #24a148;
+  --support-error: #da1e28;
+  --rating: #f1c21b;
+  --focus: #0f62fe;
+}

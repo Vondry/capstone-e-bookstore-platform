@@ -1,0 +1,12 @@
+dist
+node_modules
+coverage
+playwright-report
+test-results
+.bob
+*.md
+package-lock.json
+pnpm-lock.yaml
+
+# Medusa backend: own lint/format config (backend/AGENTS.md)
+backend

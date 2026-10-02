@@ -1,0 +1,92 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+
+/*
+ * Tailwind v4 theme (CSS-first config). Values map the design tokens in tokens.css and the
+ * Carbon scales in .bob/rules/02-design-system.md. Class names are unchanged from v3:
+ * `p-16` = 16 px, `text-20` = 20 px, `bg-layer-1`, `xlg:` …
+ */
+@theme inline {
+  /* Colours switch per theme through the CSS variables in tokens.css */
+  --color-bg: var(--bg);
+  --color-layer-1: var(--layer-1);
+  --color-layer-2: var(--layer-2);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-link: var(--link);
+  --color-interactive: var(--interactive);
+  --color-interactive-hover: var(--interactive-hover);
+  --color-button-secondary: var(--button-secondary);
+  --color-button-secondary-hover: var(--button-secondary-hover);
+  --color-support-success: var(--support-success);
+  --color-support-error: var(--support-error);
+  --color-rating: var(--rating);
+  --color-focus: var(--focus);
+}
+
+@theme {
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+
+  /* Carbon spacing: named in pixels (2, 4, 8 … 48). Other numbers keep v4's n × 0.25rem. */
+  --spacing-2: 0.125rem;
+  --spacing-4: 0.25rem;
+  --spacing-8: 0.5rem;
+  --spacing-12: 0.75rem;
+  --spacing-16: 1rem;
+  --spacing-24: 1.5rem;
+  --spacing-32: 2rem;
+  --spacing-40: 2.5rem;
+  --spacing-48: 3rem;
+
+  /* Type scale: 12 / 14 / 16 / 20 / 28 / 32 px */
+  --text-12: 0.75rem;
+  --text-14: 0.875rem;
+  --text-16: 1rem;
+  --text-20: 1.25rem;
+  --text-28: 1.75rem;
+  --text-32: 2rem;
+
+  /* Carbon breakpoints */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 320px;
+  --breakpoint-md: 672px;
+  --breakpoint-lg: 1056px;
+  --breakpoint-xlg: 1312px;
+  --breakpoint-max: 1584px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-bg font-sans text-text-primary antialiased;
+  }
+
+  /* v4 preflight no longer sets a pointer cursor on buttons; keep the v3 behaviour */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    @apply ring-2 ring-focus ring-offset-0 outline-hidden;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
