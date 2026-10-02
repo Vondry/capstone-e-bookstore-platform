@@ -18,6 +18,9 @@ const PaymentPage = lazy(() =>
 const OrderSuccessPage = lazy(() =>
   import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage }))
 );
+const OrdersPage = lazy(() =>
+  import('./pages/OrdersPage').then((m) => ({ default: m.OrdersPage }))
+);
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
@@ -49,6 +52,7 @@ function App() {
                 <Route path="/books/:handle" element={<ProductPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/orders/:id/success" element={<OrderSuccessPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
