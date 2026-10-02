@@ -15,6 +15,9 @@ const CheckoutPage = lazy(() =>
 const PaymentPage = lazy(() =>
   import('./pages/PaymentPage').then((m) => ({ default: m.PaymentPage }))
 );
+const OrderSuccessPage = lazy(() =>
+  import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -42,6 +45,7 @@ function App() {
                 <Route path="/books/:handle" element={<ProductPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/orders/:id/success" element={<OrderSuccessPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
