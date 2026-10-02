@@ -6,6 +6,9 @@ import { PageShell } from './components/layout/PageShell';
 import { ToastProvider } from './components/ui/Toast';
 
 // Lazy-load every route except Home (.bob/rules/04-code-quality.md)
+const ProductPage = lazy(() =>
+  import('./pages/ProductPage').then((m) => ({ default: m.ProductPage }))
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -30,6 +33,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/category/:handle" element={<HomePage />} />
+                <Route path="/books/:handle" element={<ProductPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
